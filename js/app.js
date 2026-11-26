@@ -13,7 +13,10 @@
   const previewPane = $('#preview-pane');
   const workspace = $('#workspace');
   const highlights = $('#editor-highlights');
+  const syntaxLayer = $('#editor-syntax');
+  const editorWrap = $('#editor-wrap');
   const E = window.HamsooEditor.create(editor);
+  const HL = window.HamsooHighlight.create(editor, syntaxLayer);
 
   /* ------------------------------------------------------------------ storage */
   const store = {
@@ -32,7 +35,7 @@
   const DEFAULTS = {
     theme: 'system', lang: null, dir: 'auto', view: 'split', split: 50, toc: false, sync: true,
     fontSize: 15, previewSize: 16, editorFont: 'mono', wrap: true, spellcheck: false, breaks: false,
-    previewWidth: true, smartPaste: true, remoteImages: true
+    previewWidth: true, smartPaste: true, remoteImages: true, syntax: true, lineNumbers: true
   };
   const settings = Object.assign({}, DEFAULTS, store.get('hamsoo:settings', {}));
   if (!settings.lang || !STR[settings.lang]) {
@@ -56,76 +59,120 @@
   }
 
   /* ------------------------------------------------------------------ documents */
+  // Metadata lives in memory (docs); content and file handles live in IndexedDB (see js/storage.js).
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  let docs = store.get('hamsoo:docs', []);
-  if (!Array.isArray(docs)) docs = [];
-  docs = docs.filter((d) => d && typeof d.id === 'string' && /^[a-z0-9]+$/.test(d.id));
+  let S = null;                 // storage backend, set in init()
+  let docs = [];                // [{id,title,updated,size,file?,remote?}]
   let currentId = store.get('hamsoo:current', null);
+  let dirty = false;            // editor differs from what is stored
+  const bc = 'BroadcastChannel' in window ? new BroadcastChannel('hamsoo-docs') : null;
 
+  const curDoc = () => docs.find((d) => d.id === currentId);
+  const sortDocs = () => docs.sort((a, b) => (b.updated || 0) - (a.updated || 0));
   function deriveTitle(text) {
     const h = text.match(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/m);
     let title = h ? h[1] : (text.split('\n').find((l) => l.trim()) || '');
     title = title.replace(/[*_`~\[\]<>#]|\(.*?\)/g, '').trim();
     return title.slice(0, 80) || t('untitled');
   }
-  const docContent = (id) => store.get('hamsoo:doc:' + id, '');
-  function saveIndex() { store.set('hamsoo:docs', docs); store.set('hamsoo:current', currentId); }
+  function setCurrent(id) { currentId = id; store.set('hamsoo:current', id); }
+  function notifyOtherTabs() { try { bc && bc.postMessage({ type: 'docs' }); } catch (e) { /* */ } }
+  function storageError(e) {
+    console.error(e);
+    toast(e && (e.name === 'QuotaExceededError' || e.code === 22) ? t('storageFull') : t('saveFailed'), 'error');
+  }
 
-  function createDoc(content, title) {
-    const doc = { id: uid(), title: title || deriveTitle(content), updated: Date.now() };
-    docs.unshift(doc);
-    store.set('hamsoo:doc:' + doc.id, content);
-    saveIndex();
-    return doc;
+  async function createDoc(content, title, extra) {
+    const meta = Object.assign({ id: uid(), title: title || deriveTitle(content), updated: Date.now(), size: content.length }, extra || {});
+    await S.put(meta, content);
+    docs.unshift(meta);
+    notifyOtherTabs();
+    return meta;
   }
 
   let saveTimer = null;
-  function scheduleSave() {
-    $('#stat-save').classList.add('pending');
-    $('#stat-save').textContent = t('saving');
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveNow, 400);
+  function setSaveStatus(pending) {
+    const el = $('#stat-save');
+    el.classList.toggle('pending', pending);
+    el.textContent = pending ? t('saving') : t('saved');
   }
+  function scheduleSave() {
+    dirty = true;
+    setSaveStatus(true);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { saveNow(); }, 400);
+  }
+  let saveChain = Promise.resolve();
   function saveNow() {
     clearTimeout(saveTimer);
-    const doc = docs.find((d) => d.id === currentId);
-    if (!doc) return;
+    const doc = curDoc();
+    if (!doc || !S || !dirty) return saveChain;
     const v = editor.value;
-    if (store.set('hamsoo:doc:' + doc.id, v)) {
-      doc.title = deriveTitle(v);
-      doc.updated = Date.now();
-      // keep most-recent first
-      docs = [doc, ...docs.filter((d) => d !== doc)];
-      saveIndex();
-      $('#stat-save').classList.remove('pending');
-      $('#stat-save').textContent = t('saved');
+    dirty = false;
+    doc.title = deriveTitle(v);
+    doc.updated = Date.now();
+    doc.size = v.length;
+    const snapshot = Object.assign({}, doc);
+    saveChain = saveChain.then(() => S.put(snapshot, v)).then(() => {
+      try { localStorage.removeItem('hamsoo:pending'); } catch (e) { /* */ }
+      if (!dirty) setSaveStatus(false);
       document.title = doc.title + ' — Hamsoo';
+      notifyOtherTabs();
+      Hooks.afterSave.forEach((fn) => fn(doc, v));
+    }).catch((e) => { dirty = true; storageError(e); });
+    return saveChain;
+  }
+  // Emergency copy: IndexedDB writes may not finish while the page unloads, localStorage writes do.
+  function savePendingSync() {
+    if (!dirty || !currentId) return;
+    try { localStorage.setItem('hamsoo:pending', JSON.stringify({ id: currentId, content: editor.value, t: Date.now() })); } catch (e) { /* too big */ }
+  }
+  async function recoverPending() {
+    let p = null;
+    try { p = JSON.parse(localStorage.getItem('hamsoo:pending') || 'null'); } catch (e) { /* */ }
+    if (!p || typeof p.id !== 'string' || typeof p.content !== 'string') return;
+    const doc = docs.find((d) => d.id === p.id);
+    if (doc && (!doc.updated || p.t > doc.updated)) {
+      Object.assign(doc, { title: deriveTitle(p.content), updated: p.t, size: p.content.length });
+      await S.put(Object.assign({}, doc), p.content);
     }
+    try { localStorage.removeItem('hamsoo:pending'); } catch (e) { /* */ }
   }
 
-  function loadDoc(id) {
-    if (currentId && currentId !== id) saveNow();
+  // Extension points used by file access
+  const Hooks = { afterSave: [], afterLoad: [], ready: [] };
+
+  async function loadDoc(id) {
+    if (currentId && currentId !== id) await saveNow();
     const doc = docs.find((d) => d.id === id);
     if (!doc) return;
-    currentId = id;
-    saveIndex();
-    editor.value = docContent(id);
+    const content = await S.getContent(id);
+    setCurrent(id);
+    dirty = false;
+    editor.value = content;
     editor.setSelectionRange(0, 0);
     editor.scrollTop = 0;
     previewPane.scrollTop = 0;
     document.title = doc.title + ' — Hamsoo';
-    $('#stat-save').classList.remove('pending');
-    $('#stat-save').textContent = t('saved');
+    setSaveStatus(false);
     renderNow();
     updateCursor();
+    Hooks.afterLoad.forEach((fn) => fn(doc));
   }
 
-  function newDoc(content, title) {
-    saveNow();
-    const doc = createDoc(content || '', title);
-    loadDoc(doc.id);
+  async function newDoc(content, title, extra) {
+    await saveNow();
+    const doc = await createDoc(content || '', title, extra);
+    await loadDoc(doc.id);
     if (!content) editor.focus();
     return doc;
+  }
+
+  /** Replace the current document's text (keeps undo history). */
+  function replaceEditorText(text) {
+    const st = editor.scrollTop, pos = Math.min(editor.selectionStart, text.length);
+    E.replaceRange(0, editor.value.length, text, pos);
+    editor.scrollTop = st;
   }
 
   /* ------------------------------------------------------------------ theme / language / direction */
@@ -137,16 +184,7 @@
     else root.setAttribute('data-theme', settings.theme);
     const icon = { system: 'i-monitor', light: 'i-sun', dark: 'i-moon' }[settings.theme];
     $('#theme-icon use').setAttribute('href', '#' + icon);
-    $('#lang-menu').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-lang]');
-    if (!b) return;
-    settings.lang = b.dataset.lang;
-    saveSettings();
-    closeMenus();
-    applyLang();
-    renderNow();
-  });
-  $$('[data-theme-opt]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeOpt === settings.theme)));
+    $$('[data-theme-opt]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeOpt === settings.theme)));
     $$('meta[name="theme-color"]').forEach((m) => { m.content = isDark() ? '#0f1117' : '#f6f7fb'; m.removeAttribute('media'); });
     if (preview.querySelector('.mermaid-block')) scheduleRender(0);
   }
@@ -200,8 +238,19 @@
     invalidateSync();
   }
 
+  /** Keep the background layers exactly as wide as the textarea's text area (minus its scrollbar). */
+  function fitLayers() {
+    const sbw = Math.max(0, editor.offsetWidth - editor.clientWidth);
+    syntaxLayer.style.right = highlights.style.right = sbw + 'px';
+  }
   function applyEditorSettings() {
-    editor.style.fontSize = highlights.style.fontSize = settings.fontSize + 'px';
+    editor.style.fontSize = highlights.style.fontSize = syntaxLayer.style.fontSize = settings.fontSize + 'px';
+    syntaxLayer.classList.toggle('sans', settings.editorFont === 'sans');
+    syntaxLayer.classList.toggle('nowrap', !settings.wrap);
+    editorWrap.classList.toggle('numbers', !!settings.lineNumbers);
+    HL.setMode({ colors: settings.syntax, numbers: settings.lineNumbers });
+    fitLayers();
+    HL.sync();
     preview.style.setProperty('--md-size', settings.previewSize + 'px');
     editor.classList.toggle('sans', settings.editorFont === 'sans');
     highlights.classList.toggle('sans', settings.editorFont === 'sans');
@@ -216,7 +265,7 @@
   }
 
   /* ------------------------------------------------------------------ rendering */
-  let renderTimer = null, renderSeq = 0, lastLines = [];
+  let renderTimer = null, renderSeq = 0, lastLines = [], lastRender = Promise.resolve();
   function scheduleRender(delay) {
     clearTimeout(renderTimer);
     const len = editor.value.length;
@@ -226,6 +275,7 @@
   function renderNow() {
     clearTimeout(renderTimer);
     const seq = ++renderSeq;
+    HL.update();
     const src = editor.value;
     const { html, lines } = R.render(src, {
       breaks: settings.breaks, remoteImages: settings.remoteImages, blockedLabel: t('imageBlocked')
@@ -245,7 +295,7 @@
     invalidateSync();
 
     const dark = isDark();
-    Promise.resolve()
+    lastRender = Promise.resolve()
       .then(() => R.renderMath(preview, t('mathError')))
       .then(() => seq === renderSeq && R.renderMermaid(preview, dark, t('diagramError')))
       .catch((e) => console.warn(e))
@@ -262,11 +312,15 @@
       editor.classList.add('bidi-plain');
       highlights.setAttribute('dir', d);
       highlights.classList.add('bidi-plain');
+      syntaxLayer.setAttribute('dir', d);
+      syntaxLayer.classList.add('bidi-plain');
     } else {
       editor.setAttribute('dir', settings.dir);
       editor.classList.remove('bidi-plain');
       highlights.setAttribute('dir', settings.dir);
       highlights.classList.remove('bidi-plain');
+      syntaxLayer.setAttribute('dir', settings.dir);
+      syntaxLayer.classList.remove('bidi-plain');
     }
   }
 
@@ -433,13 +487,19 @@
   editor.addEventListener('scroll', () => {
     highlights.scrollTop = editor.scrollTop;
     highlights.scrollLeft = editor.scrollLeft;
+    HL.sync();
     syncFrom('editor');
   }, { passive: true });
   previewPane.addEventListener('scroll', () => { syncFrom('preview'); highlightToc(); }, { passive: true });
-  window.addEventListener('resize', () => { invalidateSync(); if (findState.open) paintHighlights(); });
+  window.addEventListener('resize', () => { invalidateSync(); fitLayers(); if (findState.open) paintHighlights(); });
+  if ('ResizeObserver' in window) new ResizeObserver(() => { fitLayers(); HL.sync(); }).observe(editor);
 
   /* ------------------------------------------------------------------ editor events */
   editor.addEventListener('input', () => {
+    HL.update();
+    HL.sync();
+    const fileChip = $('#stat-file');
+    if (!fileChip.hidden) fileChip.classList.add('unsaved');
     scheduleRender();
     scheduleSave();
     if (findState.open) { clearTimeout(findState.t); findState.t = setTimeout(() => updateFind(false), 120); }
@@ -767,7 +827,11 @@
     return String(s).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
   }
 
-  async function openFile(file) {
+  /**
+   * Open a File. When a FileSystemFileHandle is given (Chrome/Edge), the document stays linked
+   * to that file on disk so Ctrl+S writes back to it.
+   */
+  async function openFile(file, handle) {
     if (!file) return;
     if (file.size > MAX_FILE) { toast(t('fileTooBig'), 'error'); return; }
     const name = file.name || '';
@@ -776,14 +840,165 @@
     if (!isHtml && !isText) { toast(t('unsupported'), 'error'); return; }
     try {
       let text = normalizeText(await file.text());
-      if (isHtml) text = await htmlToMarkdown(text);
+      if (isHtml) { text = await htmlToMarkdown(text); handle = null; } // never overwrite an .html file with Markdown
+      // Same file opened before? Re-use that document instead of creating a duplicate.
+      if (handle) {
+        const existing = await Disk.findDocFor(handle);
+        if (existing) {
+          await loadDoc(existing.id);
+          if (editor.value !== text) replaceEditorText(text);
+          existing.file = { name, lastModified: file.lastModified };
+          dirty = true; await saveNow();
+          Disk.markClean(text);
+          toast(t('opened') + ': ' + name);
+          return;
+        }
+      }
       const title = name.replace(/\.[^.]+$/, '') || undefined;
-      newDoc(text, deriveTitle(text) !== t('untitled') ? undefined : title);
+      const extra = handle ? { file: { name, lastModified: file.lastModified } } : undefined;
+      const doc = await newDoc(text, deriveTitle(text) !== t('untitled') ? undefined : title, extra);
+      if (handle) { await S.setHandle(doc.id, handle); Disk.markClean(text); }
       toast(t('opened') + ': ' + name);
     } catch (err) {
       console.error(err);
       toast(t('unsupported'), 'error');
     }
+  }
+
+  /* ------------------------------------------------------------------ files on disk (File System Access API) */
+  const FS_TYPES = [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown', '.mdown', '.mkd', '.mkdn', '.mdx'], 'text/plain': ['.txt', '.text'] } }];
+  const Disk = {
+    supported: 'showOpenFilePicker' in window && 'showSaveFilePicker' in window,
+    cleanText: null,            // text last written to / read from the linked file
+    async findDocFor(handle) {
+      for (const [id, h] of await S.allHandles()) {
+        try { if (h && await h.isSameEntry(handle) && docs.find((d) => d.id === id)) return docs.find((d) => d.id === id); } catch (e) { /* stale */ }
+      }
+      return null;
+    },
+    markClean(text) { this.cleanText = text; updateFileStatus(); },
+    async permission(handle, ask) {
+      const opts = { mode: 'readwrite' };
+      try {
+        if ((await handle.queryPermission(opts)) === 'granted') return true;
+        if (ask && (await handle.requestPermission(opts)) === 'granted') return true;
+      } catch (e) { /* */ }
+      return false;
+    },
+    async write(handle, text) {
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+    },
+    async open() {
+      let handle;
+      try {
+        [handle] = await window.showOpenFilePicker({
+          types: [...FS_TYPES, { description: 'HTML', accept: { 'text/html': ['.html', '.htm'] } }], multiple: false
+        });
+      } catch (e) { return; } // cancelled
+      await openFile(await handle.getFile(), handle);
+    },
+    /** Save to the linked file; if none, ask where to save. */
+    async save(saveAs) {
+      const doc = curDoc();
+      if (!doc) return;
+      await saveNow();
+      if (!this.supported) { ACTIONS['export-md'](); return; }
+      let handle = saveAs ? null : await S.getHandle(doc.id);
+      try {
+        if (!handle) {
+          handle = await window.showSaveFilePicker({ suggestedName: fileBase() + '.md', types: FS_TYPES });
+          await S.setHandle(doc.id, handle);
+        } else if (!(await this.permission(handle, true))) {
+          toast(t('permissionDenied'), 'error');
+          return;
+        }
+        const text = editor.value;
+        await this.write(handle, text);
+        const f = await handle.getFile();
+        doc.file = { name: handle.name, lastModified: f.lastModified };
+        await S.putMeta(Object.assign({}, doc));
+        this.markClean(text);
+        toast(t('savedToFile').replace('{name}', handle.name));
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // picker cancelled
+        console.error(e);
+        toast(t('saveFailed'), 'error');
+      }
+    },
+    /** Quietly write to the linked file when permission was already granted this session. */
+    async autoSave(doc, text) {
+      if (!this.supported || !doc.file || text === this.cleanText) return;
+      const handle = await S.getHandle(doc.id);
+      if (!handle || !(await this.permission(handle, false))) return;
+      try {
+        await this.write(handle, text);
+        const f = await handle.getFile();
+        doc.file.lastModified = f.lastModified;
+        await S.putMeta(Object.assign({}, doc));
+        this.markClean(text);
+      } catch (e) { console.warn('auto-save to file failed', e); }
+    },
+    /** If the file changed on disk (edited elsewhere) and we have no unsaved edits, reload it. */
+    async checkExternal() {
+      const doc = curDoc();
+      if (!this.supported || !doc || !doc.file) return;
+      const handle = await S.getHandle(doc.id);
+      if (!handle) return;
+      try {
+        if ((await handle.queryPermission({ mode: 'read' })) !== 'granted') return;
+        const f = await handle.getFile();
+        if (f.lastModified <= (doc.file.lastModified || 0)) return;
+        const text = normalizeText(await f.text());
+        doc.file.lastModified = f.lastModified;
+        if (editor.value === this.cleanText || this.cleanText == null) {
+          if (text !== editor.value) { replaceEditorText(text); toast(t('reloadedFromDisk')); }
+          this.markClean(text);
+        }
+        await S.putMeta(Object.assign({}, doc));
+      } catch (e) { /* file moved or deleted */ }
+    },
+    async unlink() {
+      const doc = curDoc();
+      if (!doc) return;
+      delete doc.file;
+      await S.delHandle(doc.id);
+      await S.putMeta(Object.assign({}, doc));
+      this.cleanText = null;
+      updateFileStatus();
+    }
+  };
+  let fileAutoTimer = null;
+  Hooks.afterSave.push((doc, text) => {
+    updateFileStatus();
+    clearTimeout(fileAutoTimer);
+    if (doc.file) fileAutoTimer = setTimeout(() => Disk.autoSave(doc, editor.value), 1200);
+  });
+  Hooks.afterLoad.push(async (doc) => {
+    Disk.cleanText = null;
+    if (doc.file) {
+      const h = await S.getHandle(doc.id);
+      if (h && (await h.queryPermission({ mode: 'read' }).catch(() => 'denied')) === 'granted') {
+        try { Disk.cleanText = normalizeText(await (await h.getFile()).text()); } catch (e) { /* */ }
+      }
+      Disk.checkExternal();
+    }
+    updateFileStatus();
+  });
+  window.addEventListener('focus', () => Disk.checkExternal());
+  if (!Disk.supported) $$('.fs-only').forEach((e) => { e.hidden = true; });
+
+  function updateFileStatus() {
+    const el = $('#stat-file');
+    const doc = curDoc();
+    if (!el) return;
+    if (!doc || !doc.file) { el.hidden = true; return; }
+    el.hidden = false;
+    const unsaved = Disk.cleanText == null || editor.value !== Disk.cleanText;
+    el.classList.toggle('unsaved', unsaved);
+    $('.file-name', el).textContent = doc.file.name;
+    el.title = unsaved ? t('fileUnsaved') : t('fileSynced');
   }
 
   $('#file-input').addEventListener('change', (e) => {
@@ -804,12 +1019,15 @@
     e.preventDefault();
     dragDepth = 0;
     $('#drop-overlay').hidden = true;
+    // Grab file handles synchronously (the DataTransfer is cleared after this event).
+    const handleP = Disk.supported && e.dataTransfer.items && e.dataTransfer.items[0] && e.dataTransfer.items[0].getAsFileSystemHandle
+      ? e.dataTransfer.items[0].getAsFileSystemHandle().catch(() => null) : Promise.resolve(null);
     const files = Array.from(e.dataTransfer.files || []);
     const img = files.find((f) => /^image\//.test(f.type));
     if (img && files.length === 1 && e.target === editor) { insertImageFile(img); return; }
     const f = files.find((x) => !/^image\//.test(x.type)) || files[0];
     if (f && /^image\//.test(f.type)) insertImageFile(f);
-    else if (f) openFile(f);
+    else if (f) handleP.then((h) => openFile(f, h && h.kind === 'file' && files.length === 1 ? h : null));
   });
 
   function insertImageFile(file) {
@@ -855,7 +1073,7 @@
   // PWA file handling (installed app opens .md files)
   if ('launchQueue' in window) {
     window.launchQueue.setConsumer(async (params) => {
-      for (const h of params.files || []) { try { await openFile(await h.getFile()); } catch (e) { /* ignore */ } }
+      for (const h of params.files || []) { try { await openFile(await h.getFile(), h); } catch (e) { /* ignore */ } }
     });
   }
 
@@ -920,6 +1138,20 @@
       '<style>\nbody{margin:0;background:#fff}@media (prefers-color-scheme:dark){body{background:#151820}}\n.md{max-width:860px;margin:0 auto;padding:40px 24px 80px;font-family:Vazirmatn,system-ui,-apple-system,"Segoe UI",Roboto,Tahoma,sans-serif}\n' +
       markdownCss() + '\n</style>\n</head>\n<body>\n<article class="md" dir="' + dir + '">\n' + clone.innerHTML + '\n</article>\n</body>\n</html>\n';
     download(fileBase() + '.html', doc, 'text/html;charset=utf-8');
+  }
+  async function exportDocx() {
+    try {
+      toast(t('loading'));
+      renderNow();
+      await lastRender;
+      await R.loadScript('vendor/docx.min.js');
+      await R.loadScript('js/docx-export.js');
+      const blob = await window.HamsooDocx.exportDocx(preview, { title: fileBase() });
+      download(fileBase() + '.docx', blob, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } catch (e) {
+      console.error(e);
+      toast(t('exportFailed'), 'error');
+    }
   }
   function printDoc() {
     saveNow();
@@ -1003,6 +1235,7 @@
   function renderDocList() {
     const list = $('#doc-list');
     const fmt = new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' });
+    sortDocs();
     list.replaceChildren(...docs.map((d) => {
       const li = document.createElement('li');
       li.className = 'doc-item' + (d.id === currentId ? ' current' : '');
@@ -1012,8 +1245,9 @@
         '<button type="button" class="tb" data-doc-del><svg><use href="#i-trash"/></svg></button>';
       li.dataset.id = d.id;
       $('.doc-title', li).textContent = d.title || t('untitled');
-      const len = (docContent(d.id) || '').length;
-      $('.doc-meta', li).textContent = fmt.format(new Date(d.updated || Date.now())) + ' · ' + nf().format(len) + ' ' + t('chars');
+      const bits = [fmt.format(new Date(d.updated || Date.now())), nf().format(d.size || 0) + ' ' + t('chars')];
+      if (d.file && d.file.name) bits.push('💾 ' + d.file.name);
+      $('.doc-meta', li).textContent = bits.join(' · ');
       if (d.id === currentId) {
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = t('current');
         $('.doc-main', li).after(tag);
@@ -1022,31 +1256,43 @@
       $('[data-doc-del]', li).title = t('delete'); $('[data-doc-del]', li).setAttribute('aria-label', t('delete'));
       return li;
     }));
+    updateStorageInfo();
   }
-  $('#doc-list').addEventListener('click', (e) => {
+  async function updateStorageInfo() {
+    const el = $('#storage-info');
+    if (!el) return;
+    const est = await window.HamsooStorage.estimate();
+    if (!est || !est.quota) { el.textContent = ''; return; }
+    const mb = (n) => nf().format(Math.round(n / 1048576 * 10) / 10) + ' MB';
+    el.textContent = t('storageUsed').replace('{used}', mb(est.usage || 0)).replace('{total}', mb(est.quota));
+  }
+  $('#doc-list').addEventListener('click', async (e) => {
     const li = e.target.closest('.doc-item');
     if (!li) return;
     const id = li.dataset.id;
-    if (e.target.closest('[data-doc-open]')) { loadDoc(id); closeDialogs(); return; }
-    if (e.target.closest('[data-doc-dup]')) {
-      saveNow();
-      const src = docs.find((d) => d.id === id);
-      createDoc(docContent(id), (src && src.title ? src.title : t('untitled')) + ' (2)');
-      renderDocList();
-      return;
-    }
-    if (e.target.closest('[data-doc-del]')) {
-      if (!confirm(t('deleteConfirm'))) return;
-      store.del('hamsoo:doc:' + id);
-      docs = docs.filter((d) => d.id !== id);
-      if (id === currentId) {
-        currentId = null;
-        if (docs.length) loadDoc(docs[0].id); else newDoc('');
+    try {
+      if (e.target.closest('[data-doc-open]')) { closeDialogs(); await loadDoc(id); return; }
+      if (e.target.closest('[data-doc-dup]')) {
+        await saveNow();
+        const src = docs.find((d) => d.id === id);
+        await createDoc(await S.getContent(id), (src && src.title ? src.title : t('untitled')) + ' (2)');
+        renderDocList();
+        return;
       }
-      saveIndex();
-      renderDocList();
-      toast(t('deleted'));
-    }
+      if (e.target.closest('[data-doc-del]')) {
+        if (!confirm(t('deleteConfirm'))) return;
+        await S.del(id);
+        docs = docs.filter((d) => d.id !== id);
+        if (id === currentId) {
+          setCurrent(null);
+          dirty = false;
+          if (docs.length) { sortDocs(); await loadDoc(docs[0].id); } else await newDoc('');
+        }
+        notifyOtherTabs();
+        renderDocList();
+        toast(t('deleted'));
+      }
+    } catch (err) { storageError(err); }
   });
 
   function bindSettingsForm() {
@@ -1077,14 +1323,18 @@
   let deferredInstall = null;
   const ACTIONS = {
     new: () => { closeDialogs(); newDoc(''); toast(t('newDoc')); },
-    open: () => $('#file-input').click(),
+    open: () => { closeDialogs(); if (Disk.supported) Disk.open(); else $('#file-input').click(); },
+    'save-file': () => Disk.save(false),
+    'save-as': () => Disk.save(true),
+    'unlink-file': () => Disk.unlink(),
     docs: () => { saveNow(); renderDocList(); openDialog('docs-dialog'); },
     settings: () => { bindSettingsForm(); openDialog('settings-dialog'); },
     help: () => openDialog('help-dialog'),
-    'export-md': () => { saveNow(); download(fileBase() + '.md', editor.value, 'text/markdown;charset=utf-8'); },
+    'export-md': () => { download(fileBase() + '.md', editor.value, 'text/markdown;charset=utf-8'); },
     'export-txt': () => download(fileBase() + '.txt', preview.innerText, 'text/plain;charset=utf-8'),
     'export-html': exportHtml,
     'export-pdf': printDoc,
+    'export-docx': exportDocx,
     'copy-md': async () => toast(await copyText(editor.value) ? t('copied') : t('copyFailed')),
     'copy-html': async () => toast(await copyText(cleanPreviewHtml().innerHTML) ? t('copied') : t('copyFailed')),
     'copy-rich': copyRich,
@@ -1092,14 +1342,16 @@
     toc: () => { settings.toc = !settings.toc; saveSettings(); applyEditorSettings(); highlightToc(); },
     sync: () => { settings.sync = !settings.sync; saveSettings(); applyEditorSettings(); },
     focus: () => toggleFocus(),
-    'clear-all': () => {
+    'clear-all': async () => {
       if (!confirm(t('clearAllConfirm'))) return;
-      docs.forEach((d) => store.del('hamsoo:doc:' + d.id));
-      docs = []; currentId = null;
-      saveIndex();
-      newDoc('');
-      renderDocList();
-      toast(t('deleted'));
+      try {
+        await S.clear();
+        docs = []; setCurrent(null); dirty = false;
+        notifyOtherTabs();
+        await newDoc('');
+        renderDocList();
+        toast(t('deleted'));
+      } catch (e) { storageError(e); }
     },
     install: async () => {
       if (!deferredInstall) return;
@@ -1171,7 +1423,7 @@
       closeMenus();
     }
     if (!mod) return;
-    if (k === 's' && !e.shiftKey) { e.preventDefault(); ACTIONS['export-md'](); }
+    if (k === 's') { e.preventDefault(); Disk.save(e.shiftKey); }
     else if (k === 'o' && !e.shiftKey) { e.preventDefault(); ACTIONS.open(); }
     else if (k === 'p' && !e.shiftKey) { e.preventDefault(); printDoc(); }
     else if (k === 'f' && e.shiftKey) { e.preventDefault(); toggleFocus(); }
@@ -1223,41 +1475,39 @@
   splitter.addEventListener('dblclick', () => { settings.split = 50; applyView(); saveSettings(); });
 
   /* keep tabs in sync */
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'hamsoo:docs') {
-      const fresh = store.get('hamsoo:docs', []);
-      if (Array.isArray(fresh)) {
-        // merge: keep entries for docs that still exist
-        docs = fresh.filter((d) => d && typeof d.id === 'string' && /^[a-z0-9]+$/.test(d.id));
-        if (!docs.find((d) => d.id === currentId)) {
-          const cur = { id: currentId, title: deriveTitle(editor.value), updated: Date.now() };
-          docs.unshift(cur);
-        }
-        if ($('#docs-dialog').open) renderDocList();
-      }
-    }
-  });
-  window.addEventListener('beforeunload', saveNow);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(); });
+  /* keep tabs in sync: another tab changed the document list */
+  if (bc) bc.onmessage = async (e) => {
+    if (!e.data || e.data.type !== 'docs' || !S) return;
+    const fresh = await S.listMeta();
+    const cur = curDoc();
+    docs = fresh;
+    if (cur && !docs.find((d) => d.id === cur.id)) docs.unshift(cur); // keep the open doc even if deleted elsewhere
+    if ($('#docs-dialog').open) renderDocList();
+  };
+  window.addEventListener('pagehide', () => { savePendingSync(); saveNow(); });
+  window.addEventListener('beforeunload', () => { savePendingSync(); saveNow(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { savePendingSync(); saveNow(); } });
 
   /* ------------------------------------------------------------------ init */
-  function init() {
+  async function init() {
     applyTheme();
     applyDirUI();
     applyView();
     applyEditorSettings();
     applyLang();
 
-    if (!docs.length) {
-      const doc = createDoc(WELCOME[settings.lang] || WELCOME.en);
-      currentId = doc.id;
-    }
-    if (!docs.find((d) => d.id === currentId)) currentId = docs[0].id;
-    saveIndex();
-    loadDoc(currentId);
+    S = await window.HamsooStorage.init();
+    docs = (await S.listMeta()).filter((d) => d && typeof d.id === 'string');
+    await recoverPending();
+    if (!docs.length) await createDoc(WELCOME[settings.lang] || WELCOME.en);
+    sortDocs();
+    if (!docs.find((d) => d.id === currentId)) setCurrent(docs[0].id);
+    await loadDoc(currentId);
+    Hooks.ready.forEach((fn) => fn());
 
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+      const reg = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+      if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg, { once: true });
     }
   }
   init();

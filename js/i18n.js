@@ -37,7 +37,20 @@
       welcomeName: 'welcome.md',
       phBold: 'bold text', phItalic: 'italic text', phStrike: 'strikethrough', phLink: 'link text', phAlt: 'alt text',
       tCol: 'Column', tCell: 'Cell', mmStart: 'Start', mmDecide: 'Decide', mmYes: 'Yes', mmNo: 'No',
-      emptyPreview: 'Nothing to preview yet — start typing or drop a file.', imageTooBig: 'Image is too large (max 2 MB)'
+      emptyPreview: 'Nothing to preview yet — start typing or drop a file.', imageTooBig: 'Image is too large (max 2 MB)',
+      saveFailed: 'Could not save',
+      storageUsed: 'Using {used} of {total}',
+      permissionDenied: 'Permission to write the file was not granted',
+      savedToFile: 'Saved to {name}',
+      reloadedFromDisk: 'File changed on disk — reloaded',
+      fileUnsaved: 'Unsaved changes — Ctrl+S to save to file',
+      fileSynced: 'Saved to file',
+      saveFile: 'Save to file',
+      saveAs: 'Save as…',
+      exportDocx: 'Word document (.docx)',
+      exportFailed: 'Export failed',
+      syntaxColors: 'Syntax colouring in editor',
+      lineNumbers: 'Line numbers'
     },
     fa: {
       tagline: 'استودیوی خصوصی مارک‌داون',
@@ -74,7 +87,20 @@
       welcomeName: 'خوش‌آمد.md',
       phBold: 'متن پررنگ', phItalic: 'متن مورب', phStrike: 'متن خط‌خورده', phLink: 'متن پیوند', phAlt: 'توضیح تصویر',
       tCol: 'ستون', tCell: 'خانه', mmStart: 'شروع', mmDecide: 'تصمیم', mmYes: 'بله', mmNo: 'خیر',
-      emptyPreview: 'چیزی برای نمایش نیست — شروع به نوشتن کنید یا فایلی را رها کنید.', imageTooBig: 'تصویر خیلی بزرگ است (حداکثر ۲ مگابایت)'
+      emptyPreview: 'چیزی برای نمایش نیست — شروع به نوشتن کنید یا فایلی را رها کنید.', imageTooBig: 'تصویر خیلی بزرگ است (حداکثر ۲ مگابایت)',
+      saveFailed: 'ذخیره انجام نشد',
+      storageUsed: '{used} از {total} استفاده شده',
+      permissionDenied: 'اجازه نوشتن روی فایل داده نشد',
+      savedToFile: 'در {name} ذخیره شد',
+      reloadedFromDisk: 'فایل روی دیسک تغییر کرده بود — دوباره بارگذاری شد',
+      fileUnsaved: 'تغییرات ذخیره‌نشده — Ctrl+S برای ذخیره در فایل',
+      fileSynced: 'در فایل ذخیره شده',
+      saveFile: 'ذخیره در فایل',
+      saveAs: 'ذخیره با نام…',
+      exportDocx: 'سند Word (.docx)',
+      exportFailed: 'خروجی گرفتن ناموفق بود',
+      syntaxColors: 'رنگ‌آمیزی متن در ویرایشگر',
+      lineNumbers: 'شماره خط'
     },
     ar: {
       tagline: 'استوديو ماركداون خاص',
@@ -111,7 +137,20 @@
       welcomeName: 'مرحبا.md',
       phBold: 'نص عريض', phItalic: 'نص مائل', phStrike: 'نص يتوسطه خط', phLink: 'نص الرابط', phAlt: 'وصف الصورة',
       tCol: 'عمود', tCell: 'خلية', mmStart: 'البداية', mmDecide: 'قرار', mmYes: 'نعم', mmNo: 'لا',
-      emptyPreview: 'لا يوجد ما يُعرض بعد — ابدأ الكتابة أو أفلِت ملفًا.', imageTooBig: 'الصورة كبيرة جدًا (الحد الأقصى 2 ميغابايت)'
+      emptyPreview: 'لا يوجد ما يُعرض بعد — ابدأ الكتابة أو أفلِت ملفًا.', imageTooBig: 'الصورة كبيرة جدًا (الحد الأقصى 2 ميغابايت)',
+      saveFailed: 'تعذّر الحفظ',
+      storageUsed: 'مستخدم {used} من {total}',
+      permissionDenied: 'لم يُمنح إذن الكتابة على الملف',
+      savedToFile: 'تم الحفظ في {name}',
+      reloadedFromDisk: 'تغيّر الملف على القرص — أُعيد تحميله',
+      fileUnsaved: 'تغييرات غير محفوظة — Ctrl+S للحفظ في الملف',
+      fileSynced: 'محفوظ في الملف',
+      saveFile: 'حفظ في ملف',
+      saveAs: 'حفظ باسم…',
+      exportDocx: 'مستند Word (.docx)',
+      exportFailed: 'فشل التصدير',
+      syntaxColors: 'تلوين النص في المحرر',
+      lineNumbers: 'أرقام الأسطر'
     },
     de: {
       tagline: 'Privates Markdown-Studio',
@@ -148,7 +187,20 @@
       welcomeName: 'willkommen.md',
       phBold: 'fetter Text', phItalic: 'kursiver Text', phStrike: 'durchgestrichen', phLink: 'Linktext', phAlt: 'Bildbeschreibung',
       tCol: 'Spalte', tCell: 'Zelle', mmStart: 'Start', mmDecide: 'Entscheiden', mmYes: 'Ja', mmNo: 'Nein',
-      emptyPreview: 'Noch nichts zu sehen — fang an zu schreiben oder lege eine Datei ab.', imageTooBig: 'Bild ist zu groß (max. 2 MB)'
+      emptyPreview: 'Noch nichts zu sehen — fang an zu schreiben oder lege eine Datei ab.', imageTooBig: 'Bild ist zu groß (max. 2 MB)',
+      saveFailed: 'Speichern fehlgeschlagen',
+      storageUsed: '{used} von {total} belegt',
+      permissionDenied: 'Schreibzugriff auf die Datei wurde nicht erteilt',
+      savedToFile: 'In {name} gespeichert',
+      reloadedFromDisk: 'Datei wurde extern geändert — neu geladen',
+      fileUnsaved: 'Ungespeicherte Änderungen — Strg+S speichert in die Datei',
+      fileSynced: 'In Datei gespeichert',
+      saveFile: 'In Datei speichern',
+      saveAs: 'Speichern unter…',
+      exportDocx: 'Word-Dokument (.docx)',
+      exportFailed: 'Export fehlgeschlagen',
+      syntaxColors: 'Syntaxhervorhebung im Editor',
+      lineNumbers: 'Zeilennummern'
     }
   };
 
@@ -165,7 +217,7 @@
       shortcuts: [
         ['Ctrl/⌘ + B', 'Bold'], ['Ctrl/⌘ + I', 'Italic'], ['Ctrl/⌘ + K', 'Link'], ['Ctrl/⌘ + E', 'Inline code'],
         ['Ctrl/⌘ + Shift + X', 'Strikethrough'], ['Ctrl/⌘ + 1…3', 'Heading 1–3'], ['Ctrl/⌘ + F', 'Find & replace'],
-        ['Ctrl/⌘ + S', 'Download .md'], ['Ctrl/⌘ + O', 'Open file'], ['Ctrl/⌘ + P', 'Print / PDF'],
+        ['Ctrl/⌘ + S', 'Save (to the linked file)'], ['Ctrl/⌘ + Shift + S', 'Save as…'], ['Ctrl/⌘ + O', 'Open file'], ['Ctrl/⌘ + P', 'Print / PDF'],
         ['Ctrl/⌘ + Alt + N', 'New document'], ['Ctrl/⌘ + Shift + F', 'Focus mode'], ['Tab / Shift + Tab', 'Indent / outdent'],
         ['Enter', 'Continue lists automatically'], ['Esc', 'Close dialogs / exit focus']
       ],
@@ -175,6 +227,8 @@
         'GitHub-flavored Markdown: tables, task lists (click to tick), strikethrough, footnotes, autolinks.',
         'Code highlighting for 190+ languages, LaTeX math ($…$ and $$…$$), and Mermaid diagrams.',
         'Export to Markdown, HTML, plain text or PDF; copy as rich text for Word, Google Docs or email.',
+        'Open a file and Ctrl+S saves straight back to it (Chrome, Edge). Colour-coded editor with line numbers.',
+        'Export to Word (.docx) with correct right-to-left layout.',
         'Documents autosave in this browser only. Nothing is uploaded, ever.'
       ]
     },
@@ -182,7 +236,7 @@
       shortcuts: [
         ['Ctrl/⌘ + B', 'پررنگ'], ['Ctrl/⌘ + I', 'مورب'], ['Ctrl/⌘ + K', 'پیوند'], ['Ctrl/⌘ + E', 'کد درون‌خطی'],
         ['Ctrl/⌘ + Shift + X', 'خط‌خورده'], ['Ctrl/⌘ + 1…3', 'تیتر ۱ تا ۳'], ['Ctrl/⌘ + F', 'جستجو و جایگزینی'],
-        ['Ctrl/⌘ + S', 'دانلود فایل .md'], ['Ctrl/⌘ + O', 'باز کردن فایل'], ['Ctrl/⌘ + P', 'چاپ / PDF'],
+        ['Ctrl/⌘ + S', 'ذخیره (در فایل متصل)'], ['Ctrl/⌘ + Shift + S', 'ذخیره با نام…'], ['Ctrl/⌘ + O', 'باز کردن فایل'], ['Ctrl/⌘ + P', 'چاپ / PDF'],
         ['Ctrl/⌘ + Alt + N', 'سند جدید'], ['Ctrl/⌘ + Shift + F', 'حالت تمرکز'], ['Tab / Shift + Tab', 'تورفتگی / برگشت'],
         ['Enter', 'ادامه خودکار فهرست‌ها'], ['Esc', 'بستن پنجره‌ها / خروج از تمرکز']
       ],
@@ -192,6 +246,8 @@
         'مارک‌داون گیت‌هاب: جدول، فهرست کارها (قابل تیک زدن)، خط‌خورده، پانویس و پیوند خودکار.',
         'رنگ‌آمیزی کد برای بیش از ۱۹۰ زبان، فرمول‌های LaTeX و نمودارهای Mermaid.',
         'خروجی Markdown، HTML، متن ساده یا PDF؛ کپی قالب‌دار برای Word، Google Docs یا ایمیل.',
+        'فایل را باز کنید و Ctrl+S مستقیم روی همان فایل ذخیره می‌کند (Chrome و Edge). ویرایشگر رنگی با شماره خط.',
+        'خروجی Word (.docx) با راست‌چین درست.',
         'اسناد فقط در همین مرورگر ذخیره می‌شوند. هیچ چیزی آپلود نمی‌شود.'
       ]
     },
@@ -199,7 +255,7 @@
       shortcuts: [
         ['Ctrl/⌘ + B', 'عريض'], ['Ctrl/⌘ + I', 'مائل'], ['Ctrl/⌘ + K', 'رابط'], ['Ctrl/⌘ + E', 'كود سطري'],
         ['Ctrl/⌘ + Shift + X', 'يتوسطه خط'], ['Ctrl/⌘ + 1…3', 'عنوان 1 إلى 3'], ['Ctrl/⌘ + F', 'بحث واستبدال'],
-        ['Ctrl/⌘ + S', 'تنزيل ملف .md'], ['Ctrl/⌘ + O', 'فتح ملف'], ['Ctrl/⌘ + P', 'طباعة / PDF'],
+        ['Ctrl/⌘ + S', 'حفظ (في الملف المرتبط)'], ['Ctrl/⌘ + Shift + S', 'حفظ باسم…'], ['Ctrl/⌘ + O', 'فتح ملف'], ['Ctrl/⌘ + P', 'طباعة / PDF'],
         ['Ctrl/⌘ + Alt + N', 'مستند جديد'], ['Ctrl/⌘ + Shift + F', 'وضع التركيز'], ['Tab / Shift + Tab', 'إزاحة / إلغاء الإزاحة'],
         ['Enter', 'متابعة القوائم تلقائيًا'], ['Esc', 'إغلاق النوافذ / الخروج من التركيز']
       ],
@@ -209,6 +265,8 @@
         'ماركداون بأسلوب GitHub: جداول، قوائم مهام (انقر للتأشير)، نص يتوسطه خط، حواشٍ وروابط تلقائية.',
         'تلوين الكود لأكثر من 190 لغة، ومعادلات LaTeX، ومخططات Mermaid.',
         'تصدير إلى Markdown أو HTML أو نص عادي أو PDF، ونسخ كنص منسّق لـ Word أو Google Docs أو البريد.',
+        'افتح ملفًا وسيحفظ Ctrl+S مباشرة فيه (Chrome وEdge). محرر ملوّن مع أرقام الأسطر.',
+        'تصدير إلى Word (.docx) مع اتجاه صحيح من اليمين إلى اليسار.',
         'تُحفظ المستندات تلقائيًا في هذا المتصفح فقط. لا يُرفع أي شيء أبدًا.'
       ]
     },
@@ -216,7 +274,7 @@
       shortcuts: [
         ['Strg/⌘ + B', 'Fett'], ['Strg/⌘ + I', 'Kursiv'], ['Strg/⌘ + K', 'Link'], ['Strg/⌘ + E', 'Inline-Code'],
         ['Strg/⌘ + Umschalt + X', 'Durchgestrichen'], ['Strg/⌘ + 1…3', 'Überschrift 1–3'], ['Strg/⌘ + F', 'Suchen & Ersetzen'],
-        ['Strg/⌘ + S', '.md herunterladen'], ['Strg/⌘ + O', 'Datei öffnen'], ['Strg/⌘ + P', 'Drucken / PDF'],
+        ['Strg/⌘ + S', 'Speichern (in die verknüpfte Datei)'], ['Strg/⌘ + Umschalt + S', 'Speichern unter…'], ['Strg/⌘ + O', 'Datei öffnen'], ['Strg/⌘ + P', 'Drucken / PDF'],
         ['Strg/⌘ + Alt + N', 'Neues Dokument'], ['Strg/⌘ + Umschalt + F', 'Fokusmodus'], ['Tab / Umschalt + Tab', 'Einrücken / Ausrücken'],
         ['Enter', 'Listen automatisch fortsetzen'], ['Esc', 'Dialoge schließen / Fokus beenden']
       ],
@@ -226,6 +284,8 @@
         'GitHub-Markdown: Tabellen, Aufgabenlisten (zum Abhaken anklicken), Durchstreichen, Fußnoten, automatische Links.',
         'Syntaxhervorhebung für über 190 Sprachen, LaTeX-Formeln ($…$ und $$…$$) und Mermaid-Diagramme.',
         'Export als Markdown, HTML, Text oder PDF; als formatierten Text für Word, Google Docs oder E-Mail kopieren.',
+        'Öffne eine Datei und Strg+S speichert direkt dorthin zurück (Chrome, Edge). Farbiger Editor mit Zeilennummern.',
+        'Export nach Word (.docx) mit korrektem Rechts-nach-links-Layout.',
         'Dokumente werden nur in diesem Browser automatisch gespeichert. Nichts wird jemals hochgeladen.'
       ]
     }

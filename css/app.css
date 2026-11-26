@@ -19,6 +19,8 @@
   --editor-bg: #ffffff;
   --mark: rgba(250, 204, 21, .45);
   --mark-cur: rgba(249, 115, 22, .55);
+  --tk-h: #4338ca; --tk-hmark: #8b5cf6; --tk-list: #8b5cf6; --tk-quote: #15803d; --tk-code: #be185d; --tk-mute: #9aa1b1;
+  --tk-strong: #b45309; --tk-em: #0e7490; --tk-url: #2563eb; --tk-math: #7c3aed; --tk-html: #0891b2;
   --ui-font: 'Vazirmatn', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Vazirmatn', monospace;
   color-scheme: light;
@@ -28,14 +30,14 @@
     --bg: #0d0f14; --surface: #151820; --surface-2: #12151c; --hover: #1f232d; --border: #252a35; --border-strong: #323846;
     --text: #e4e7ee; --muted: #949db0; --accent: #8b8cf8; --accent-2: #b48cfb; --accent-soft: #23253c; --accent-text: #c7c8ff;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 16px 40px -12px rgba(0, 0, 0, .6), 0 2px 8px rgba(0, 0, 0, .35);
-    --editor-bg: #12151c; --mark: rgba(250, 204, 21, .3); --mark-cur: rgba(249, 115, 22, .5); color-scheme: dark;
+    --editor-bg: #12151c; --tk-h: #a5b4fc; --tk-hmark: #c4b5fd; --tk-list: #c4b5fd; --tk-quote: #86efac; --tk-code: #f9a8d4; --tk-mute: #6b7385; --tk-strong: #fcd34d; --tk-em: #67e8f9; --tk-url: #93c5fd; --tk-math: #d8b4fe; --tk-html: #5eead4; --mark: rgba(250, 204, 21, .3); --mark-cur: rgba(249, 115, 22, .5); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0d0f14; --surface: #151820; --surface-2: #12151c; --hover: #1f232d; --border: #252a35; --border-strong: #323846;
   --text: #e4e7ee; --muted: #949db0; --accent: #8b8cf8; --accent-2: #b48cfb; --accent-soft: #23253c; --accent-text: #c7c8ff;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 16px 40px -12px rgba(0, 0, 0, .6), 0 2px 8px rgba(0, 0, 0, .35);
-  --editor-bg: #12151c; --mark: rgba(250, 204, 21, .3); --mark-cur: rgba(249, 115, 22, .5); color-scheme: dark;
+  --editor-bg: #12151c; --tk-h: #a5b4fc; --tk-hmark: #c4b5fd; --tk-list: #c4b5fd; --tk-quote: #86efac; --tk-code: #f9a8d4; --tk-mute: #6b7385; --tk-strong: #fcd34d; --tk-em: #67e8f9; --tk-url: #93c5fd; --tk-math: #d8b4fe; --tk-html: #5eead4; --mark: rgba(250, 204, 21, .3); --mark-cur: rgba(249, 115, 22, .5); color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -46,7 +48,8 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+/* UI icons only — never touch SVG inside rendered Markdown (diagrams, math) */
+:where(svg:not(.md svg)) { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -157,20 +160,53 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .app[data-view="preview"] .toolbar .tb-group:not(:last-child) { display: none; }
 
 /* editor */
-.editor-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-#editor, .editor-highlights {
-  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border: 0;
-  padding: 24px clamp(16px, 4vw, 40px) min(35vh, 240px); font-family: var(--mono); font-size: 15px; line-height: 1.75;
+.editor-wrap {
+  --pad-x: clamp(16px, 4vw, 40px); --gutter: 0px; --pad-l: var(--pad-x);
+  position: relative; flex: 1; min-height: 0; overflow: hidden;
+}
+.editor-wrap.numbers { --gutter: 46px; --pad-l: calc(var(--gutter) + 14px); }
+#editor, .editor-highlights, .editor-syntax {
+  position: absolute; inset: 0; margin: 0; border: 0;
+  padding: 24px var(--pad-x) min(35vh, 240px) var(--pad-l); font-family: var(--mono); font-size: 15px; line-height: 1.75;
   tab-size: 4; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; letter-spacing: 0;
+  font-variant-ligatures: none; font-kerning: none;
 }
 #editor {
-  resize: none; outline: none; background: transparent; color: var(--text); overflow-y: auto; z-index: 1;
-  caret-color: var(--accent); text-align: start;
+  width: 100%; height: 100%; resize: none; outline: none; background: transparent; color: var(--text); overflow-y: scroll; z-index: 2;
+  caret-color: var(--accent); text-align: start; scrollbar-width: thin;
 }
 #editor::placeholder { color: var(--muted); }
 #editor::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
-#editor.bidi-plain, .editor-highlights.bidi-plain { unicode-bidi: plaintext; }
-#editor.nowrap, .editor-highlights.nowrap { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+#editor.hl-on { color: transparent; -webkit-text-fill-color: transparent; }
+#editor.hl-on::placeholder { -webkit-text-fill-color: var(--muted); color: var(--muted); }
+#editor.bidi-plain, .editor-highlights.bidi-plain, .editor-syntax.bidi-plain .hl-line { unicode-bidi: plaintext; }
+#editor.nowrap, .editor-highlights.nowrap, .editor-syntax.nowrap { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+.editor-syntax.nowrap .hl-line { width: max-content; min-width: 100%; }
+#editor.sans, .editor-highlights.sans, .editor-syntax.sans { font-family: var(--ui-font); }
+
+/* syntax colouring layer (behind the textarea) */
+.editor-syntax { color: var(--text); overflow: hidden; pointer-events: none; z-index: 1; counter-reset: ln; text-align: start; }
+.editor-syntax.plain { color: transparent; }
+.editor-syntax .hl-line { position: relative; min-height: 1.75em; }
+.editor-wrap.numbers .editor-syntax .hl-line::before {
+  counter-increment: ln; content: counter(ln); position: absolute; top: 0; left: calc(-1 * var(--pad-l)); width: calc(var(--gutter) - 8px);
+  text-align: right; direction: ltr; unicode-bidi: isolate; color: var(--muted); opacity: .65;
+  font-family: var(--mono); font-size: .78em; line-height: calc(1.75em / .78); transform: translateX(var(--sx, 0px));
+  -webkit-text-fill-color: currentColor;
+}
+.editor-gutter {
+  display: none; position: absolute; top: 0; bottom: 0; left: 0; width: var(--gutter); z-index: 0;
+  background: var(--surface-2); border-right: 1px solid var(--border);
+}
+.editor-wrap.numbers .editor-gutter { display: block; }
+.tk-h { color: var(--tk-h); } .tk-hmark { color: var(--tk-hmark); }
+.tk-list, .tk-task { color: var(--tk-list); } .tk-task.done { color: var(--tk-quote); }
+.tk-quote { color: var(--tk-quote); }
+.tk-code, .tk-icode { color: var(--tk-code); } .tk-fence { color: var(--tk-mute); }
+.tk-strong { color: var(--tk-strong); } .tk-em { color: var(--tk-em); } .tk-del { color: var(--tk-mute); text-decoration: line-through; }
+.tk-url { color: var(--tk-url); } .tk-ltext { color: var(--tk-h); } .tk-link { color: var(--tk-url); }
+.tk-math { color: var(--tk-math); } .tk-html { color: var(--tk-html); }
+.tk-punct, .tk-pipe, .tk-hr { color: var(--tk-mute); }
 #editor.sans, .editor-highlights.sans { font-family: var(--ui-font); }
 .editor-highlights { color: transparent; overflow: hidden; pointer-events: none; z-index: 0; }
 .editor-highlights mark { background: var(--mark); color: transparent; border-radius: 2px; }
@@ -328,6 +364,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .kbd-table kbd { font-family: var(--mono); font-size: 11.5px; background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; direction: ltr; display: inline-block; }
 .version { color: var(--muted); font-size: 12px; margin: 0 20px 18px; }
 
+/* status chip: linked file */
+.stat.chip { border: 1px solid var(--border); background: var(--surface-2); border-radius: 99px; padding: 1px 9px; font: inherit; color: var(--muted); cursor: pointer; max-width: 240px; }
+.stat.chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.file-chip.unsaved { color: #b45309; border-color: color-mix(in srgb, #f59e0b 45%, transparent); }
+.menu button kbd { margin-inline-start: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); direction: ltr; }
+.storage-info { font-size: 12px; color: var(--muted); text-align: center; }
+
 /* toasts */
 .toasts { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast {
@@ -372,7 +416,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .toolbar { padding: 4px 8px; }
   .hide-sm { display: none; }
   .statusbar { gap: 12px; padding-inline: 12px; }
-  #editor, .editor-highlights { padding: 16px 16px 80px; }
+  .editor-wrap { --pad-x: 16px; }
+  .editor-wrap.numbers { --gutter: 38px; --pad-l: calc(var(--gutter) + 10px); }
+  #editor, .editor-highlights, .editor-syntax { padding: 16px var(--pad-x) 80px var(--pad-l); }
   .md#preview { padding: 20px 16px 30vh; }
   .menu { position: fixed; top: auto; bottom: 12px; left: 12px; right: 12px; inset-inline-end: 12px; min-width: 0; }
 }
