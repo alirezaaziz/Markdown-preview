@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Hamsoo — Markdown Editor</title>
+<meta name="description" content="A private, offline Markdown editor and viewer with automatic right-to-left (Persian, Arabic, Hebrew) support, live preview, math, diagrams and export to HTML/PDF. Everything runs in your browser.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Hamsoo — Private Markdown Studio">
+<meta property="og:description" content="Write, preview and export Markdown with perfect RTL/LTR support. 100% in your browser — nothing is uploaded.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icons/og.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" href="fonts/Vazirmatn-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/markdown.css" id="md-css-link">
+<script src="js/boot.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#a855f7"/></linearGradient>
+  </defs>
+  <symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z"/></symbol>
+  <symbol id="i-italic" viewBox="0 0 24 24"><path d="M19 4h-9M14 20H5M15 4 9 20"/></symbol>
+  <symbol id="i-strike" viewBox="0 0 24 24"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6M4 12h16"/></symbol>
+  <symbol id="i-h1" viewBox="0 0 24 24"><path d="M4 12h8M4 18V6M12 18V6M17 12l3-2v8"/></symbol>
+  <symbol id="i-h2" viewBox="0 0 24 24"><path d="M4 12h8M4 18V6M12 18V6M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></symbol>
+  <symbol id="i-h3" viewBox="0 0 24 24"><path d="M4 12h8M4 18V6M12 18V6M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M6 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+  <symbol id="i-codeblock" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m10 10-2 2 2 2m4-4 2 2-2 2"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+  <symbol id="i-ul" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-ol" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol>
+  <symbol id="i-task" viewBox="0 0 24 24"><rect x="3" y="4" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4M13 7h8M13 17h8"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M12 3v18"/></symbol>
+  <symbol id="i-hr" viewBox="0 0 24 24"><path d="M3 12h18M8 6h8M8 18h8"/></symbol>
+  <symbol id="i-math" viewBox="0 0 24 24"><path d="M18 7V4H6l6 8-6 8h12v-3"/></symbol>
+  <symbol id="i-diagram" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M10 6h4a3 3 0 0 1 3 3v6"/></symbol>
+  <symbol id="i-footnote" viewBox="0 0 24 24"><path d="m4 19 8-8M12 19l-8-8M20 12h-4c0-1.5.44-2 1.5-2.5S20 8.33 20 7c0-.47-.17-.93-.48-1.29a2.1 2.1 0 0 0-2.62-.44c-.42.24-.74.61-.9 1.06"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M21 7v6h-6M3 17a9 9 0 0 1 15-6.7l3 2.7"/></symbol>
+  <symbol id="i-toc" viewBox="0 0 24 24"><path d="M21 12h-8M21 6H8M21 18h-8M3 6v4a2 2 0 0 0 2 2h3M3 10v6a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></symbol>
+  <symbol id="i-new" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M9 15h6M12 18v-6"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2ZM3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-split" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 24 24"><path d="M10 3v11M14 3v11M16 3H8.5a3.5 3.5 0 0 0 0 7H10M4 20h16M7 17l-3 3 3 3M17 17l3 3-3 3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-html" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M10 12.5 8 15l2 2.5M14 12.5l2 2.5-2 2.5"/></symbol>
+  <symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2M15 12v6M12 15h6"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="9" fill="url(#g-accent)" stroke="none"/><path d="M8.5 9v14M23.5 9v14M11.5 16h9M13.6 13.9 11.5 16l2.1 2.1M18.4 13.9l2.1 2.1-2.1 2.1" stroke="#fff" stroke-width="2.2"/></symbol>
+</svg>
+
+<div class="app" id="app" data-view="split">
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Hamsoo">
+      <svg class="logo"><use href="#i-logo"/></svg>
+      <span class="brand-text"><strong>Hamsoo</strong><small data-i18n="tagline">Private Markdown studio</small></span>
+    </a>
+
+    <div class="seg view-seg" role="radiogroup" aria-label="View">
+      <button type="button" class="seg-btn" data-view-btn="editor" role="radio" data-i18n-title="viewEditor"><svg><use href="#i-pencil"/></svg><span data-i18n="viewEditor">Editor</span></button>
+      <button type="button" class="seg-btn" data-view-btn="split" role="radio" data-i18n-title="viewSplit"><svg><use href="#i-split"/></svg><span data-i18n="viewSplit">Split</span></button>
+      <button type="button" class="seg-btn" data-view-btn="preview" role="radio" data-i18n-title="viewPreview"><svg><use href="#i-eye"/></svg><span data-i18n="viewPreview">Preview</span></button>
+    </div>
+
+    <div class="top-actions">
+      <button type="button" class="btn ghost" data-action="new" data-i18n-title="new"><svg><use href="#i-new"/></svg><span class="lbl" data-i18n="new">New</span></button>
+      <button type="button" class="btn ghost" data-action="open" data-i18n-title="open"><svg><use href="#i-open"/></svg><span class="lbl" data-i18n="open">Open</span></button>
+      <button type="button" class="btn ghost" data-action="docs" data-i18n-title="docs"><svg><use href="#i-docs"/></svg><span class="lbl" data-i18n="docs">Documents</span></button>
+
+      <div class="menu-wrap">
+        <button type="button" class="btn primary" data-menu="export-menu" aria-haspopup="menu" aria-expanded="false"><svg><use href="#i-download"/></svg><span class="lbl" data-i18n="export">Export</span><svg class="chev"><use href="#i-chev"/></svg></button>
+        <div class="menu" id="export-menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-action="export-md"><svg><use href="#i-file"/></svg><span data-i18n="exportMd">Markdown file (.md)</span></button>
+          <button type="button" role="menuitem" data-action="export-html"><svg><use href="#i-html"/></svg><span data-i18n="exportHtml">HTML page (.html)</span></button>
+          <button type="button" role="menuitem" data-action="export-pdf"><svg><use href="#i-print"/></svg><span data-i18n="exportPdf">PDF / Print</span></button>
+          <button type="button" role="menuitem" data-action="export-txt"><svg><use href="#i-file"/></svg><span data-i18n="exportTxt">Plain text (.txt)</span></button>
+          <hr>
+          <button type="button" role="menuitem" data-action="copy-md"><svg><use href="#i-copy"/></svg><span data-i18n="copyMd">Copy Markdown</span></button>
+          <button type="button" role="menuitem" data-action="copy-rich"><svg><use href="#i-copy"/></svg><span data-i18n="copyRich">Copy as rich text</span></button>
+          <button type="button" role="menuitem" data-action="copy-html"><svg><use href="#i-code"/></svg><span data-i18n="copyHtml">Copy HTML source</span></button>
+        </div>
+      </div>
+
+      <span class="sep" aria-hidden="true"></span>
+
+      <div class="menu-wrap">
+        <button type="button" class="btn icon" data-menu="dir-menu" aria-haspopup="menu" aria-expanded="false" data-i18n-title="direction"><svg><use href="#i-dir"/></svg><span class="badge" id="dir-badge">A</span></button>
+        <div class="menu" id="dir-menu" role="menu" hidden>
+          <button type="button" role="menuitemradio" data-dir="auto"><svg><use href="#i-check"/></svg><span data-i18n="dirAuto">Auto (per paragraph)</span></button>
+          <button type="button" role="menuitemradio" data-dir="rtl"><svg><use href="#i-check"/></svg><span data-i18n="dirRtl">Right to left</span></button>
+          <button type="button" role="menuitemradio" data-dir="ltr"><svg><use href="#i-check"/></svg><span data-i18n="dirLtr">Left to right</span></button>
+        </div>
+      </div>
+
+      <div class="menu-wrap">
+        <button type="button" class="btn icon" data-menu="theme-menu" aria-haspopup="menu" aria-expanded="false" data-i18n-title="theme"><svg id="theme-icon"><use href="#i-monitor"/></svg></button>
+        <div class="menu" id="theme-menu" role="menu" hidden>
+          <button type="button" role="menuitemradio" data-theme-opt="system"><svg><use href="#i-monitor"/></svg><span data-i18n="themeSystem">System</span></button>
+          <button type="button" role="menuitemradio" data-theme-opt="light"><svg><use href="#i-sun"/></svg><span data-i18n="themeLight">Light</span></button>
+          <button type="button" role="menuitemradio" data-theme-opt="dark"><svg><use href="#i-moon"/></svg><span data-i18n="themeDark">Dark</span></button>
+        </div>
+      </div>
+
+      <div class="menu-wrap">
+        <button type="button" class="btn icon" data-menu="lang-menu" aria-haspopup="menu" aria-expanded="false" data-i18n-title="language"><svg><use href="#i-globe"/></svg><span class="badge" id="lang-badge">EN</span></button>
+        <div class="menu lang-menu" id="lang-menu" role="menu" hidden></div>
+      </div>
+      <button type="button" class="btn icon" data-action="settings" data-i18n-title="settings"><svg><use href="#i-settings"/></svg></button>
+      <button type="button" class="btn icon" data-action="help" data-i18n-title="help"><svg><use href="#i-help"/></svg></button>
+      <button type="button" class="btn ghost install-btn" data-action="install" hidden><svg><use href="#i-download"/></svg><span class="lbl" data-i18n="installApp">Install app</span></button>
+    </div>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="undo" data-i18n-title="undo"><svg><use href="#i-undo"/></svg></button>
+      <button type="button" class="tb" data-fmt="redo" data-i18n-title="redo"><svg><use href="#i-redo"/></svg></button>
+    </div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="bold" data-i18n-title="bold"><svg><use href="#i-bold"/></svg></button>
+      <button type="button" class="tb" data-fmt="italic" data-i18n-title="italic"><svg><use href="#i-italic"/></svg></button>
+      <button type="button" class="tb" data-fmt="strike" data-i18n-title="strike"><svg><use href="#i-strike"/></svg></button>
+      <button type="button" class="tb" data-fmt="code" data-i18n-title="code"><svg><use href="#i-code"/></svg></button>
+    </div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="h1" data-i18n-title="h1"><svg><use href="#i-h1"/></svg></button>
+      <button type="button" class="tb" data-fmt="h2" data-i18n-title="h2"><svg><use href="#i-h2"/></svg></button>
+      <button type="button" class="tb" data-fmt="h3" data-i18n-title="h3"><svg><use href="#i-h3"/></svg></button>
+      <button type="button" class="tb" data-fmt="quote" data-i18n-title="quote"><svg><use href="#i-quote"/></svg></button>
+    </div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="ul" data-i18n-title="ul"><svg><use href="#i-ul"/></svg></button>
+      <button type="button" class="tb" data-fmt="ol" data-i18n-title="ol"><svg><use href="#i-ol"/></svg></button>
+      <button type="button" class="tb" data-fmt="task" data-i18n-title="task"><svg><use href="#i-task"/></svg></button>
+    </div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="link" data-i18n-title="link"><svg><use href="#i-link"/></svg></button>
+      <button type="button" class="tb" data-fmt="image" data-i18n-title="image"><svg><use href="#i-image"/></svg></button>
+      <button type="button" class="tb" data-fmt="table" data-i18n-title="table"><svg><use href="#i-table"/></svg></button>
+      <button type="button" class="tb" data-fmt="codeblock" data-i18n-title="codeblock"><svg><use href="#i-codeblock"/></svg></button>
+      <button type="button" class="tb" data-fmt="hr" data-i18n-title="hr"><svg><use href="#i-hr"/></svg></button>
+    </div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-fmt="math" data-i18n-title="math"><svg><use href="#i-math"/></svg></button>
+      <button type="button" class="tb" data-fmt="mermaid" data-i18n-title="mermaid"><svg><use href="#i-diagram"/></svg></button>
+      <button type="button" class="tb" data-fmt="footnote" data-i18n-title="footnote"><svg><use href="#i-footnote"/></svg></button>
+      <button type="button" class="tb" data-fmt="format-tables" data-i18n-title="formatTables"><svg><use href="#i-wand"/></svg></button>
+    </div>
+    <div class="tb-spacer"></div>
+    <div class="tb-group">
+      <button type="button" class="tb" data-action="find" data-i18n-title="find"><svg><use href="#i-search"/></svg></button>
+      <button type="button" class="tb toggle" data-action="toc" data-i18n-title="toc" aria-pressed="false"><svg><use href="#i-toc"/></svg></button>
+      <button type="button" class="tb toggle" data-action="sync" data-i18n-title="syncScroll" aria-pressed="true"><svg><use href="#i-sync"/></svg></button>
+      <button type="button" class="tb" data-action="focus" data-i18n-title="focus"><svg><use href="#i-focus"/></svg></button>
+    </div>
+  </div>
+
+  <main class="workspace" id="workspace">
+    <aside class="toc" id="toc" aria-label="Outline">
+      <div class="toc-head"><svg><use href="#i-toc"/></svg><span data-i18n="outline">Outline</span></div>
+      <nav id="toc-list"></nav>
+    </aside>
+
+    <section class="pane editor-pane" id="editor-pane">
+      <div class="findbar" id="findbar" hidden>
+        <div class="find-row">
+          <div class="find-input"><svg><use href="#i-search"/></svg><input id="find-input" type="text" data-i18n-ph="findPh" placeholder="Find" spellcheck="false" autocomplete="off"><span class="find-count" id="find-count" aria-live="polite"></span></div>
+          <button type="button" class="tb" id="find-prev" title="↑"><svg><use href="#i-up"/></svg></button>
+          <button type="button" class="tb" id="find-next" title="↓"><svg><use href="#i-chev"/></svg></button>
+          <label class="chip"><input type="checkbox" id="find-case"><span>Aa</span></label>
+          <label class="chip"><input type="checkbox" id="find-regex"><span>.*</span></label>
+          <button type="button" class="tb" id="find-close" data-i18n-title="close"><svg><use href="#i-x"/></svg></button>
+        </div>
+        <div class="find-row">
+          <div class="find-input"><svg><use href="#i-pencil"/></svg><input id="replace-input" type="text" data-i18n-ph="replacePh" placeholder="Replace" spellcheck="false" autocomplete="off"></div>
+          <button type="button" class="btn small" id="replace-one" data-i18n="replace">Replace</button>
+          <button type="button" class="btn small" id="replace-all" data-i18n="replaceAll">All</button>
+        </div>
+      </div>
+      <div class="editor-wrap">
+        <div class="editor-highlights" id="editor-highlights" aria-hidden="true"></div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Markdown editor" wrap="soft"></textarea>
+      </div>
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Resize"></div>
+
+    <section class="pane preview-pane" id="preview-pane" tabindex="-1">
+      <article class="md" id="preview" aria-live="off"></article>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <span class="stat" id="stat-words"></span>
+    <span class="stat" id="stat-chars"></span>
+    <span class="stat hide-sm" id="stat-lines"></span>
+    <span class="stat hide-sm" id="stat-read"></span>
+    <span class="stat hide-sm" id="stat-cursor"></span>
+    <span class="grow"></span>
+    <span class="stat save" id="stat-save"></span>
+    <span class="stat local"><svg><use href="#i-shield"/></svg><span data-i18n="localOnly">100% in your browser</span></span>
+  </footer>
+</div>
+
+<div class="drop-overlay" id="drop-overlay" hidden>
+  <div class="drop-card">
+    <svg><use href="#i-open"/></svg>
+    <strong data-i18n="dropHint">Drop your file to open it</strong>
+    <span data-i18n="dropSub">.md · .markdown · .txt · .html</span>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept=".md,.markdown,.mdown,.mkd,.mkdn,.mdx,.txt,.text,.html,.htm,text/markdown,text/plain,text/html" hidden>
+
+<dialog id="docs-dialog" class="dlg">
+  <div class="dlg-head"><h2 data-i18n="docsTitle">Your documents</h2><button type="button" class="tb" data-close data-i18n-title="close"><svg><use href="#i-x"/></svg></button></div>
+  <p class="dlg-sub"><svg><use href="#i-shield"/></svg><span data-i18n="docsHint">Stored only in this browser.</span></p>
+  <ul class="doc-list" id="doc-list"></ul>
+  <div class="dlg-foot">
+    <button type="button" class="btn danger-ghost" data-action="clear-all"><svg><use href="#i-trash"/></svg><span data-i18n="clearAll">Delete all</span></button>
+    <span class="grow"></span>
+    <button type="button" class="btn ghost" data-action="open"><svg><use href="#i-open"/></svg><span data-i18n="open">Open</span></button>
+    <button type="button" class="btn primary" data-action="new"><svg><use href="#i-new"/></svg><span data-i18n="new">New</span></button>
+  </div>
+</dialog>
+
+<dialog id="settings-dialog" class="dlg">
+  <div class="dlg-head"><h2 data-i18n="settingsTitle">Settings</h2><button type="button" class="tb" data-close data-i18n-title="close"><svg><use href="#i-x"/></svg></button></div>
+  <div class="settings">
+    <label class="row"><span data-i18n="fontSize">Editor font size</span><span class="range"><input type="range" min="11" max="24" step="1" data-setting="fontSize"><output data-out="fontSize"></output></span></label>
+    <label class="row"><span data-i18n="previewSize">Preview font size</span><span class="range"><input type="range" min="12" max="24" step="1" data-setting="previewSize"><output data-out="previewSize"></output></span></label>
+    <div class="row"><span data-i18n="editorFont">Editor font</span>
+      <span class="seg small" role="radiogroup">
+        <label><input type="radio" name="editorFont" value="mono" data-setting="editorFont"><span data-i18n="fontMono">Monospace</span></label>
+        <label><input type="radio" name="editorFont" value="sans" data-setting="editorFont"><span data-i18n="fontSans">Sans-serif</span></label>
+      </span>
+    </div>
+    <label class="row switch"><span data-i18n="lineWrap">Wrap long lines</span><input type="checkbox" data-setting="wrap"><i></i></label>
+    <label class="row switch"><span data-i18n="spellcheck">Spell check in editor</span><input type="checkbox" data-setting="spellcheck"><i></i></label>
+    <label class="row switch"><span data-i18n="breaks">Treat single line breaks as &lt;br&gt;</span><input type="checkbox" data-setting="breaks"><i></i></label>
+    <label class="row switch"><span data-i18n="previewWidth">Limit preview width</span><input type="checkbox" data-setting="previewWidth"><i></i></label>
+    <label class="row switch"><span data-i18n="smartPaste">Convert pasted web content to Markdown</span><input type="checkbox" data-setting="smartPaste"><i></i></label>
+    <label class="row switch"><span><span data-i18n="remoteImages">Load remote images</span><small data-i18n="remoteImagesHint"></small></span><input type="checkbox" data-setting="remoteImages"><i></i></label>
+    <label class="row switch"><span data-i18n="syncScroll">Sync scroll</span><input type="checkbox" data-setting="sync"><i></i></label>
+  </div>
+  <p class="privacy"><svg><use href="#i-shield"/></svg><span data-i18n="privacyNote"></span></p>
+</dialog>
+
+<dialog id="help-dialog" class="dlg wide">
+  <div class="dlg-head"><h2 data-i18n="helpTitle">Help & shortcuts</h2><button type="button" class="tb" data-close data-i18n-title="close"><svg><use href="#i-x"/></svg></button></div>
+  <div class="help-grid">
+    <section><h3 data-i18n="features">What you can do</h3><ul id="help-features" class="help-features"></ul></section>
+    <section><h3 data-i18n="shortcuts">Keyboard shortcuts</h3><table class="kbd-table" id="help-shortcuts"></table></section>
+  </div>
+  <p class="privacy"><svg><use href="#i-shield"/></svg><span data-i18n="privacyNote"></span></p>
+  <p class="version">Hamsoo v1.1.0 · <span dir="ltr">marked · DOMPurify · highlight.js · KaTeX · Mermaid · Vazirmatn</span></p>
+</dialog>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/marked-footnote.js"></script>
+<script src="vendor/purify.min.js"></script>
+<script src="vendor/hljs/highlight.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/render.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
